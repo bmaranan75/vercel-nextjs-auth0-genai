@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { streamText, Message, createDataStreamResponse, DataStreamWriter } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { shopOnlineTool } from '@/lib/tools/shop-online';
+import { setAIContext } from '@auth0/ai-vercel';
 
 const date = new Date().toISOString();
 
@@ -27,7 +29,10 @@ export async function POST(req: NextRequest) {
 
   const messages = sanitizeMessages(request.messages);
 
-  const tools = {};
+  //SET AI context
+  setAIContext({ threadID: request.id });
+
+  const tools = {shopOnlineTool};
 
   return createDataStreamResponse({
     execute: async (dataStream: DataStreamWriter) => {
@@ -36,7 +41,7 @@ export async function POST(req: NextRequest) {
         system: AGENT_SYSTEM_TEMPLATE,
         messages,
         maxSteps: 5,
-        tools,
+        tools: { shopOnlineTool },
       });
 
       result.mergeIntoDataStream(dataStream, {
