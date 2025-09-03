@@ -1,12 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth0 } from './lib/auth0';
+import { NextRequest, NextResponse } from "next/server";
+import { auth0 } from "./lib/auth0";
 
 export async function middleware(request: NextRequest) {
   const authRes = await auth0.middleware(request);
 
   // Authentication routes — let the Auth0 middleware handle it.
-  if (request.nextUrl.pathname.startsWith('/auth')) {
+  if (request.nextUrl.pathname.startsWith("/auth")) {
     return authRes;
+  }
+
+  // API routes that handle their own authentication (like checkout)
+  if (request.nextUrl.pathname.startsWith("/api/checkout")) {
+    return NextResponse.next();
   }
 
   const { origin } = new URL(request.url);
@@ -28,6 +33,6 @@ export const config = {
      * - favicon.ico, sitemap.xml, robots.txt (metadata files)
      * - $ (root)
      */
-    '/((?!_next/static|_next/image|images|favicon.[ico|png]|sitemap.xml|robots.txt|$).*)',
+    "/((?!_next/static|_next/image|images|favicon.[ico|png]|sitemap.xml|robots.txt|$).*)",
   ],
 };
