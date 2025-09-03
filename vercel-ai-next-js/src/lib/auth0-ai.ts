@@ -28,3 +28,27 @@ export const withAsyncAuthorization = auth0AI.withAsyncUserConfirmation({
     return `Authorization failed: ${e.message}`;
   },
 });
+
+// CIBA flow for payment method addition with user confirmation
+export const withAsyncPaymentAuthorization = auth0AI.withAsyncUserConfirmation({
+  userID: async () => {
+    const user = await getUser();
+    return user?.sub as string;
+  },
+  bindingMessage: async ({ type, isDefault }) =>
+    `Payment method approval: Add ${type.replace('_', ' ')}${isDefault ? ' as default' : ''}`,
+  scopes: ["openid", "checkout:addpayments"],
+  audience: process.env["ADD_PAYMENT_API_AUDIENCE"]!,
+  onAuthorizationRequest: "block", // Wait for user approval
+  onUnauthorized: async (e: Error) => {
+    console.error("[auth0-ai] Payment authorization failed:", e);
+    if (e instanceof AccessDeniedInterrupt) {
+      return "The user has denied the request";
+    }
+    // Handle CIBA-specific errors more gracefully
+    if (e.message?.includes("CIBA_USER_DOES_NOT_HAVE_PUSH_NOTIFICATIONS")) {
+      return "CIBA authorization requires proper setup. Please ensure your Auth0 tenant and application are configured for CIBA with polling mode.";
+    }
+    return `Authorization failed: ${e.message}`;
+  },
+});

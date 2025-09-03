@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { streamText, Message, createDataStreamResponse, DataStreamWriter } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { shopOnlineTool } from '@/lib/tools/shop-online';
+import { addPaymentMethodTool } from '@/lib/tools/add-payment-method';
 import { setAIContext } from '@auth0/ai-vercel';
 
 const date = new Date().toISOString();
@@ -10,10 +11,10 @@ const AGENT_SYSTEM_TEMPLATE = `You are a helpful Safeway shopping assistant. You
 
 - Product recommendations and suggestions
 - Meal planning and recipe ideas
-- Creating and organizing shopping lists
 - Finding deals and promotions
 - Nutritional information and dietary needs
 - Store information and services
+- Adding and managing payment methods for checkout
 
 You are knowledgeable about grocery products, cooking, nutrition, and shopping tips. Be friendly, helpful, and enthusiastic about helping customers make their shopping experience better. When discussing products, feel free to mention popular brands and categories that Safeway typically carries.
 
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
   //SET AI context
   setAIContext({ threadID: request.id });
 
-  const tools = {shopOnlineTool};
+  const tools = {shopOnlineTool, addPaymentMethodTool};
 
   return createDataStreamResponse({
     execute: async (dataStream: DataStreamWriter) => {
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
         system: AGENT_SYSTEM_TEMPLATE,
         messages,
         maxSteps: 5,
-        tools: { shopOnlineTool },
+        tools: { shopOnlineTool, addPaymentMethodTool },
       });
 
       result.mergeIntoDataStream(dataStream, {
