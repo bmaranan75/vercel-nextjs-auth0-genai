@@ -1,7 +1,7 @@
 import './globals.css';
 import { Open_Sans, Roboto } from 'next/font/google';
 import Link from 'next/link';
-import { ShoppingCart } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 
 import { ActiveLink } from '@/components/navbar';
@@ -16,6 +16,9 @@ const roboto = Roboto({ weight: ['400', '500', '700'], subsets: ['latin'] });
 
 const TITLE = 'Safeway Assistant: Your AI Shopping Companion';
 const DESCRIPTION = 'Get personalized shopping assistance and discover great deals with our AI-powered assistant.';
+
+// Force dynamic rendering because we use auth0.getSession() which accesses cookies
+export const dynamic = 'force-dynamic';
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let session = null;
@@ -56,16 +59,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <div className="flex gap-6 flex-col md:flex-row md:items-center">
                   <Link href="/" className="flex items-center gap-3 px-4">
                     <div className="bg-white p-2 rounded-lg">
-                      <ShoppingCart className="h-8 w-8 text-safeway-red" />
+                      <Sparkles className="h-8 w-8 text-safeway-red" />
                     </div>
                   <span className={`${roboto.className} text-white text-2xl font-bold`}>Safeway Assistant</span>
                 </Link>
                 <nav className="flex gap-2 flex-col md:flex-row">
                   <ActiveLink href="/" className="safeway-nav-link">
                     Chat Assistant
-                  </ActiveLink>
-                  <ActiveLink href="/documents" className="safeway-nav-link">
-                    Shopping Lists
                   </ActiveLink>
                 </nav>
               </div>

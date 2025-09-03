@@ -1,10 +1,13 @@
-import { LogIn, UserPlus, ShoppingCart, Sparkles } from 'lucide-react';
+import { LogIn, UserPlus, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { ChatWindow } from '@/components/chat-window';
 import { GuideInfoBox } from '@/components/guide/GuideInfoBox';
 import { Button } from '@/components/ui/button';
 
 import { auth0 } from '@/lib/auth0';
+
+// Force dynamic rendering because we use auth0.getSession() which accesses cookies
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   const session = await auth0.getSession();
@@ -15,7 +18,7 @@ export default async function Home() {
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center gap-3 mb-6">
             <div className="bg-safeway-red p-3 rounded-xl">
-              <ShoppingCart className="h-8 w-8 text-white" />
+              <Sparkles className="h-8 w-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-safeway-dark-gray">Welcome to Safeway Assistant</h1>
           </div>
@@ -51,13 +54,6 @@ export default async function Home() {
             </p>
           </div>
           <div className="safeway-card p-6 text-center">
-            <ShoppingCart className="h-8 w-8 text-safeway-red mx-auto mb-3" />
-            <h3 className="font-semibold text-safeway-dark-gray mb-2">Easy Shopping Lists</h3>
-            <p className="text-sm text-safeway-dark-gray/70">
-              Create and manage your shopping lists with AI assistance
-            </p>
-          </div>
-          <div className="safeway-card p-6 text-center">
             <div className="text-2xl mb-3">💰</div>
             <h3 className="font-semibold text-safeway-dark-gray mb-2">Find Great Deals</h3>
             <p className="text-sm text-safeway-dark-gray/70">Discover current promotions and savings opportunities</p>
@@ -73,7 +69,7 @@ export default async function Home() {
         <li className="text-base flex items-start gap-3">
           <span className="text-2xl">🛒</span>
           <span>
-            Welcome to your <strong>Safeway AI Assistant</strong>! I can help you find products, create shopping lists,
+            Welcome to your <strong>Safeway AI Assistant</strong>! I can help you find products, 
             and discover great deals. Just ask me anything about your shopping needs.
           </span>
         </li>
@@ -81,16 +77,6 @@ export default async function Home() {
           <span className="text-2xl">💡</span>
           <span>
             Try asking: <em>&ldquo;Help me plan a healthy meal for tonight&rdquo;</em> or <em>&ldquo;What&rsquo;s on sale this week?&rdquo;</em>
-          </span>
-        </li>
-        <li className="text-base flex items-start gap-3">
-          <span className="text-2xl">📝</span>
-          <span>
-            I can also help you organize your shopping lists in the{' '}
-            <Link className="text-safeway-red hover:underline font-semibold" href="/documents">
-              Shopping Lists
-            </Link>{' '}
-            section.
           </span>
         </li>
       </ul>

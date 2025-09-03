@@ -87,11 +87,11 @@ export const shopOnlineTool = withAsyncAuthorization(
         `[shop-online] Ordering ${qty} of ${product} with a price limit of ${priceLimit}`
       );
 
-      // Use the new checkout API endpoint with absolute URL
-      const apiUrl = process.env.NEXT_PUBLIC_BASE_URL
-        ? `${process.env.NEXT_PUBLIC_BASE_URL}/api/checkout`
-        : "http://localhost:3000/api/checkout";
+      // Use the SHOP_API_URL from environment or fallback to localhost
+      const apiUrl = process.env.SHOP_API_URL || "http://localhost:3000/api/checkout";
+      const audience = process.env.SHOP_API_AUDIENCE || "http://localhost:3000/api/checkout";
       console.log(`[shop-online] Using API URL: ${apiUrl}`);
+      console.log(`[shop-online] Using API Audience: ${audience}`);
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
         Authorization: "",
