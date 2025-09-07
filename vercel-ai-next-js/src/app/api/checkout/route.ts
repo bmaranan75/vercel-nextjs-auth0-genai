@@ -68,12 +68,45 @@ export async function POST(req: NextRequest) {
       );
     }
     const token = authHeader.replace("Bearer ", "");
-    const { valid, error } = await validateAccessToken(token);
-    if (!valid) {
-      return NextResponse.json(
-        { error: error || "Unauthorized" },
-        { status: 403 }
-      );
+
+    console.log("[checkout-api] Received token for validation");
+    
+    // Handle both JWT tokens and user context tokens
+    let userInfo: any;
+    try {
+      // Try to parse as JSON first (our user context token)
+      userInfo = JSON.parse(token);
+      console.log("[checkout-api] Parsed user context token:", {
+        sub: userInfo.sub,
+        scope: userInfo.scope
+      });
+      
+      // Validate it has the required scope
+      if (!userInfo.scope || !userInfo.scope.includes(REQUIRED_SCOPE)) {
+        return NextResponse.json(
+          { error: "Missing required scope" },
+          { status: 403 }
+        );
+      }
+      
+      // Validate it has a user
+      if (!userInfo.sub) {
+        return NextResponse.json(
+          { error: "Invalid user token" },
+          { status: 403 }
+        );
+      }
+      
+    } catch (jsonError) {
+      // If JSON parsing fails, try JWT validation
+      const validation = await validateAccessToken(token);
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: validation.error },
+          { status: 403 }
+        );
+      }
+      userInfo = validation.payload;
     }
 
     // Parse request body to get checkout details

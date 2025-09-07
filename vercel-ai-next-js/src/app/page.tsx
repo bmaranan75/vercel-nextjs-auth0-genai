@@ -85,7 +85,7 @@ export default async function Home() {
 
   return (
     <ChatWindow
-      endpoint="api/chat"
+      endpoint="/api/chat"
       emoji="🛒"
       placeholder={`Hello ${session?.user?.name}! I'm your Safeway shopping assistant. How can I help you today?`}
       emptyStateComponent={InfoCard}

@@ -1,64 +1,94 @@
-import { NextRequest } from 'next/server';
-import { streamText, Message, createDataStreamResponse, DataStreamWriter } from 'ai';
-import { openai } from '@ai-sdk/openai';
-import { shopOnlineTool } from '@/lib/tools/shop-online';
-import { addPaymentMethodTool } from '@/lib/tools/add-payment-method';
-import { setAIContext } from '@auth0/ai-vercel';
+import { NextRequest, NextResponse } from 'next/server';
+import { HumanMessage } from '@langchain/core/messages';
+import { graph } from '@/lib/agent';
+import { getUser } from '@/lib/auth0';
+import { getAuthorizationState, resetAuthorizationState } from '@/lib/auth0-ai-langchain';
 
-const date = new Date().toISOString();
-
-const AGENT_SYSTEM_TEMPLATE = `You are a helpful Safeway shopping assistant. Your name is Safeway Assistant and you help customers with their grocery shopping needs. You can help with:
-
-- Product recommendations and suggestions
-- Meal planning and recipe ideas
-- Finding deals and promotions
-- Nutritional information and dietary needs
-- Store information and services
-- Adding and managing payment methods for checkout
-
-You are knowledgeable about grocery products, cooking, nutrition, and shopping tips. Be friendly, helpful, and enthusiastic about helping customers make their shopping experience better. When discussing products, feel free to mention popular brands and categories that Safeway typically carries.
-
-If customers ask about specific current promotions or prices, remind them that you can provide general guidance but they should check the Safeway website or visit their local store for the most up-to-date pricing and availability.
-
-Today is ${date}.`;
-
-/**
- * This handler initializes and calls an tool calling agent.
- */
 export async function POST(req: NextRequest) {
-  const request = await req.json();
-
-  const messages = sanitizeMessages(request.messages);
-
-  //SET AI context
-  setAIContext({ threadID: request.id });
-
-  const tools = {shopOnlineTool, addPaymentMethodTool};
-
-  return createDataStreamResponse({
-    execute: async (dataStream: DataStreamWriter) => {
-      const result = streamText({
-        model: openai('gpt-4o-mini'),
-        system: AGENT_SYSTEM_TEMPLATE,
-        messages,
-        maxSteps: 5,
-        tools: { shopOnlineTool, addPaymentMethodTool },
+  try {
+    const body = await req.json();
+    const { messages } = body;
+    
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return NextResponse.json({
+        message: "Hello! I'm your shopping assistant. How can I help you today?"
       });
+    }
 
-      result.mergeIntoDataStream(dataStream, {
-        sendReasoning: true,
+    // Get the last message from the user
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || !lastMessage.content) {
+      return NextResponse.json({
+        message: "I didn't receive a message. Please try again."
       });
-    },
-    onError: (err: any) => {
-      console.log(err);
-      return `An error occurred! ${err.message}`;
-    },
-  });
+    }
+
+    try {
+      // Get the authenticated user for Auth0 AI context
+      const user = await getUser();
+      console.log("[chat-api] User context:", user?.sub);
+      console.log("[chat-api] User message:", lastMessage.content);
+      
+      // Reset authorization state before processing
+      resetAuthorizationState();
+      
+      // Use the agent with proper Auth0 context
+      const result = await graph.invoke(
+        {
+          messages: [new HumanMessage(lastMessage.content)]
+        },
+        {
+          configurable: {
+            user_id: user?.sub,
+            _credentials: {
+              user: user
+            }
+          }
+        }
+      );
+      
+      console.log("[chat-api] Agent result:", JSON.stringify(result, null, 2));
+      
+      // Extract the response from the agent
+      const responseMessage = result.messages[result.messages.length - 1];
+      console.log("[chat-api] Response message:", responseMessage.content);
+      
+      // Get authorization state after processing
+      const authState = getAuthorizationState();
+      
+      const response: any = {
+        message: responseMessage.content || "I'm sorry, I couldn't process that request."
+      };
+
+      // Include authorization status if there was an authorization request
+      if (authState.status !== 'idle') {
+        response.authorizationStatus = authState.status;
+        if (authState.message) {
+          response.authorizationMessage = authState.message;
+        }
+      }
+      
+      return NextResponse.json(response);
+      
+    } catch (agentError) {
+      console.error('Agent error:', agentError);
+      return NextResponse.json({
+        message: "I'm your shopping assistant! I can help you with product recommendations and shopping. What would you like to do today?"
+      });
+    }
+    
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json(
+      { error: 'Failed to process request' },
+      { status: 500 }
+    );
+  }
 }
 
-// Vercel AI tends to get stuck when there are incomplete tool calls in messages
-const sanitizeMessages = (messages: Message[]) => {
-  return messages.filter(
-    (message) => !(message.role === 'assistant' && message.parts && message.parts.length > 0 && message.content === ''),
-  );
-};
+export async function GET() {
+  return NextResponse.json({
+    status: "LangChain Agent Ready",
+    message: "Direct LangChain integration active"
+  });
+}
